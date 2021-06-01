@@ -20,6 +20,14 @@ import UIKit
 
 class DriveSyncStartView: UIStackView {
 
+  let onAction: () -> Void
+  
+  var isChecked: Bool = false {
+    didSet {
+      refreshCheckBox()
+    }
+  }
+
   lazy var folderView: UIView = {
     let stackView = UIStackView()
     stackView.axis = .horizontal
@@ -60,8 +68,55 @@ class DriveSyncStartView: UIStackView {
     label.font = ArduinoTypography.regularFont(forSize: ArduinoTypography.FontSize.Small.rawValue)
     return label
   }()
+
+  lazy var checkBoxView: UIView = {
+    let stackView = UIStackView()
+    stackView.axis = .horizontal
+    stackView.alignment = .top
+    stackView.spacing = 8
+    stackView.isLayoutMarginsRelativeArrangement = true
+    stackView.layoutMargins = UIEdgeInsets(top: 0, left: 10, bottom: 0, right: 10)
+
+    // checkBoxImageView.setContentCompressionResistancePriority(.required, for: .horizontal)
+    // textView.setContentCompressionResistancePriority(.required, for: .horizontal)
+    checkBoxImageView.setContentHuggingPriority(.required, for: .horizontal)
+
+    stackView.addArrangedSubview(checkBoxImageView)
+    stackView.addArrangedSubview(textView)
+
+    // checkBoxImageView.widthAnchor.constraint(equalToConstant: 18).isActive = true
+    return stackView
+  }()
+
+  private let checkBoxImageView = UIImageView(image: UIImage(named: "sign_in_checkbox"))
+  private let textView: UITextView = {
+    let textView = UITextView()
+    textView.textContainer.lineFragmentPadding = 0
+    textView.textContainerInset = .zero
+    textView.isScrollEnabled = false
+    textView.scrollsToTop = false
+    textView.isSelectable = true
+    textView.isEditable = false
+    textView.delaysContentTouches = false
+    textView.dataDetectorTypes = [.link]
+    textView.font = ArduinoTypography.labelFont
+    textView.textColor = .black
+    textView.backgroundColor = .clear
+    textView.linkTextAttributes = [
+      .foregroundColor: ArduinoColorPalette.tealPalette.tint800!,
+    ]
+    return textView
+  }()
   
-  init(folderName: String) {
+  private let uncheckedImage = UIImage(named: "sign_in_checkbox")
+  private let checkedImage = UIImage(named: "sign_in_checkbox_selected")
+
+  private let myText: String = "I have read the <a href=\"[%1]\" style=\"text-decoration: none\">Privacy Policy</a>" +
+                                "I have read the <a href=\"[%1]\" style=\"text-decoration: none\">Privacy Policy</a>" +
+                                "I have read the <a href=\"[%1]\" style=\"text-decoration: none\">Privacy Policy</a>"
+  
+  init(folderName: String, onAction: @escaping (() -> Void)) {
+    self.onAction = onAction
     super.init(frame: .zero)
 
     axis = .vertical
@@ -71,14 +126,40 @@ class DriveSyncStartView: UIStackView {
     spacing = 48
 
     folderLabel.text = folderName
+    textView.set(htmlText: myText)
+    textView.inject(urls: [Constants.ArduinoSignIn.privacyPolicyUrl])
+
+    checkBoxImageView.isUserInteractionEnabled = true
     
     addArrangedSubview(folderView)
+    addArrangedSubview(checkBoxView)
     addArrangedSubview(confirmButton)
     addArrangedSubview(notice)
+
+    let leadingConstraint = checkBoxView.leadingAnchor.constraint(equalTo: leadingAnchor)
+    leadingConstraint.priority = .required-1
+    NSLayoutConstraint.activate([
+      leadingConstraint,
+      checkBoxView.centerXAnchor.constraint(equalTo: safeAreaLayoutGuide.centerXAnchor),
+    ])
+
+    let tap = UITapGestureRecognizer(target: self, action: #selector(didTap(_:)))
+    checkBoxImageView.addGestureRecognizer(tap)
+  }
+
+  @objc private func didTap(_ sender: UITapGestureRecognizer) {    
+    if sender.state == .ended {
+      isChecked.toggle()
+      onAction()
+    }
+  }
+
+  private func refreshCheckBox() {
+    checkBoxImageView.image = isChecked ? checkedImage : uncheckedImage
   }
 
   required init(coder: NSCoder) {
-    super.init(coder: coder)
+    fatalError("init(coder:) has not been implemented")
   }
 
 }

@@ -18,14 +18,15 @@
 
 import UIKit
 import GoogleSignIn
-
 class DriveSyncStartViewController: WizardViewController {
 
   let user: GIDGoogleUser
   let folder: DriveFetcher.Folder
   let accountsManager: AccountsManager
   
-  private(set) lazy var startView = DriveSyncStartView(folderName: folder.name)
+  private(set) lazy var startView = DriveSyncStartView(folderName: folder.name) { [weak self] in
+    self?.checkTerms()
+  }
   
   init(user: GIDGoogleUser, folder: DriveFetcher.Folder, accountsManager: AccountsManager) {
     self.user = user
@@ -49,12 +50,17 @@ class DriveSyncStartViewController: WizardViewController {
     startView.confirmButton.addTarget(self, action: #selector(start(_:)), for: .touchUpInside)
 
     startView.notice.text = String.driveSyncStartNotice
+    checkTerms()
   }
   
   @objc private func start(_ sender: UIButton) {
     accountsManager.enableDriveSync(with: user, folderID: folder.id, folderName: folder.name)
     rootViewController?.close(isCancelled: false)
     NotificationCenter.default.post(name: .settingsShouldClose, object: self)
+  }
+
+  private func checkTerms() {
+    startView.confirmButton.isEnabled = startView.isChecked
   }
 
 }
